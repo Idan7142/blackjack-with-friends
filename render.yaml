@@ -1,0 +1,14 @@
+# Single web service. Tables live in memory on the instance.
+services:
+  - type: web
+    name: friends-blackjack
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
