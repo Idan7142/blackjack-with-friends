@@ -374,16 +374,16 @@ describe("dealing, payouts, doubles, and splits", () => {
 });
 
 describe("cut card and shoe", () => {
-  it("inserts the cut card at 60–75% of a 3-deck shoe and never deals it", () => {
+  it("inserts the cut card at 60–75% of a 6-deck shoe and never deals it", () => {
     for (let seed = 1; seed <= 25; seed += 1) {
       const shoe = createShoe({ rng: mulberry32(seed) });
-      assert.equal(shoe.realCount, 156);
-      assert.equal(shoe.cards.length, 157);
+      assert.equal(shoe.realCount, 312);
+      assert.equal(shoe.cards.length, 313);
       assert.equal(shoe.cards.filter((card) => card.cut).length, 1);
       const ratio = shoe.cutIndex / shoe.realCount;
       assert.ok(ratio >= 0.6 - 1e-9 && ratio <= 0.75 + 1e-9, `penetration ${ratio}`);
       const ids = shoe.cards.filter((card) => !card.cut).map((card) => card.id);
-      assert.equal(new Set(ids).size, 156);
+      assert.equal(new Set(ids).size, 312);
     }
 
     const shoe = createShoe({
@@ -418,13 +418,13 @@ describe("cut card and shoe", () => {
     completeDealer(table);
     assert.equal(table.phase, "results");
     assert.equal(table.shoe.cutReached, true);
-    assert.notEqual(table.shoe.realCount, 156);
+    assert.equal(table.shoe.realCount, 20);
     const previous = table.shoe;
     assert.equal(openBetting(table).ok, true);
     assert.notEqual(table.shoe, previous);
     assert.equal(table.shoe.cutReached, false);
-    assert.equal(table.shoe.realCount, 156);
-    assert.equal(table.shoe.cards.filter((card) => !card.cut).length, 156);
+    assert.equal(table.shoe.realCount, 312);
+    assert.equal(table.shoe.cards.filter((card) => !card.cut).length, 312);
     assert.equal(table.reshuffled, true);
     const ranks = {};
     for (const card of table.shoe.cards) {
@@ -432,8 +432,29 @@ describe("cut card and shoe", () => {
       ranks[card.rank] = (ranks[card.rank] || 0) + 1;
     }
     for (const rank of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
-      assert.equal(ranks[rank], 12, rank);
+      assert.equal(ranks[rank], 24, rank);
     }
+  });
+
+  it("builds 312 cards and seats seven players, rejecting an eighth", () => {
+    assert.equal(RULES.decks, 6);
+    assert.equal(RULES.maxPlayers, 7);
+    const table = createTable({ rng: mulberry32(11) });
+    assert.equal(table.shoe.realCount, 312);
+    assert.equal(table.shoe.cards.filter((card) => !card.cut).length, 312);
+    for (let i = 1; i <= 7; i += 1) {
+      const added = addPlayer(table, { id: `p${i}`, nickname: `שחקן${i}`, bankroll: 1000 });
+      assert.equal(added.ok, true, added.error);
+    }
+    const extra = addPlayer(table, { id: "p8", nickname: "עוד", bankroll: 1000 });
+    assert.equal(extra.ok, false);
+    assert.equal(extra.error, "השולחן מלא (עד 7 שחקנים)");
+    const view = publicView(table, { role: "dealer" });
+    assert.equal(view.rules.maxPlayers, 7);
+    assert.equal(view.rules.decks, 6);
+    assert.equal(view.shoe.decks, 6);
+    assert.equal(view.shoe.remaining, 312);
+    assert.equal(view.players.length, 7);
   });
 });
 
