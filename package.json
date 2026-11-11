@@ -1,0 +1,22 @@
+{
+  "name": "friends-blackjack",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Play-money multiplayer blackjack for friends. Hebrew, server-authoritative.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "NODE_ENV=test node --test"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
+  }
+}

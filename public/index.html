@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="בלאקג'ק בכסף משחק בין חברים. בלי תשלומים אמיתיים." />
+  <title>בלאקג'ק · שולחן חברים</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Frank+Ruhl+Libre:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="toast" role="status" hidden></div>
+
+  <section id="gate">
+    <div class="gate-hero">
+      <div class="fan" aria-hidden="true">
+        <div class="card red mini"><span>A</span><b>♥</b></div>
+        <div class="card black mini"><span>K</span><b>♠</b></div>
+        <div class="card back mini"></div>
+      </div>
+      <p class="eyebrow">שולחן לחברים</p>
+      <h1>בלאקג'ק</h1>
+      <p class="lede">כסף משחק בלבד, בלי תשלומים אמיתיים. מי שפותח את השולחן מחלק, והשאר נכנסים עם כינוי וקופה.</p>
+    </div>
+
+    <div class="gate-grid">
+      <form id="create-form" class="panel">
+        <h2>פתיחת שולחן</h2>
+        <p>אתם תהיו הדילר. תקבלו קוד וקישור לשיתוף.</p>
+        <label>
+          <span>שם לתצוגה</span>
+          <input id="dealer-name" name="dealerName" maxlength="16" autocomplete="nickname" placeholder="לדוגמה: רוני" />
+        </label>
+        <button type="submit" class="primary" data-act="create">צור שולחן</button>
+      </form>
+
+      <form id="join-form" class="panel">
+        <h2>הצטרפות לשולחן</h2>
+        <p>הקוד מופיע אצל מי שפתח את השולחן, או בתוך הקישור.</p>
+        <label>
+          <span>קוד שולחן</span>
+          <input id="join-code" name="code" maxlength="8" dir="ltr" autocapitalize="characters" placeholder="ABCDE" required />
+        </label>
+        <label>
+          <span>כינוי</span>
+          <input id="join-name" name="nickname" maxlength="16" autocomplete="nickname" placeholder="לדוגמה: נועה" required />
+        </label>
+        <label>
+          <span>קופת פתיחה</span>
+          <input id="join-bankroll" name="bankroll" type="number" inputmode="numeric" min="100" max="100000" step="1" value="1000" required />
+        </label>
+        <div class="presets" aria-label="סכומים מהירים">
+          <button type="button" data-act="preset" data-value="500">500</button>
+          <button type="button" data-act="preset" data-value="1000">1,000</button>
+          <button type="button" data-act="preset" data-value="2500">2,500</button>
+          <button type="button" data-act="preset" data-value="5000">5,000</button>
+        </div>
+        <button type="submit" class="primary">כניסה לשולחן</button>
+      </form>
+    </div>
+    <p id="conn-gate" class="conn-line">מתחברים לשרת…</p>
+  </section>
+
+  <section id="room" hidden>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">BJ</span>
+        <div>
+          <strong>בלאקג'ק</strong>
+          <small>כסף משחק בלבד</small>
+        </div>
+      </div>
+      <div class="code-chip">
+        <span>קוד שולחן</span>
+        <b id="room-code" dir="ltr">-----</b>
+        <button type="button" data-act="copy">העתקת קישור</button>
+      </div>
+      <div id="shoe-readout" class="shoe-readout"></div>
+      <div class="top-actions">
+        <span id="role-pill" class="role-pill"></span>
+        <span id="conn-dot" class="conn-dot" title="חיבור"></span>
+        <button type="button" class="ghost" data-act="rules">כללים</button>
+        <button type="button" class="ghost" data-act="leave">יציאה</button>
+      </div>
+    </header>
+
+    <div class="stage">
+      <div class="table-wrap">
+        <div class="rail">
+          <div id="felt" class="felt"></div>
+        </div>
+      </div>
+      <aside class="log-panel">
+        <h2>מהלך היד</h2>
+        <ol id="log"></ol>
+      </aside>
+    </div>
+    <footer id="dock"></footer>
+  </section>
+
+  <dialog id="rules">
+    <form method="dialog">
+      <header>
+        <h2>כללי השולחן</h2>
+        <button value="close" class="ghost" aria-label="סגירה">סגירה</button>
+      </header>
+      <ul>
+        <li>3 חפיסות מעורבבות, עם קלף חיתוך אדום בערך ב־60% עד 75% מהנעל. כשהקלף האדום יוצא מסיימים את הסיבוב, ומערבבים נעל מלאה לפני הסיבוב הבא.</li>
+        <li>הדילר עומד על כל 17, כולל 17 רך (אס שנשאר 11).</li>
+        <li>בלאקג'ק טבעי — אס וקלף 10 בשני הקלפים הראשונים — משלם 3:2.</li>
+        <li>תיקו מחזיר את ההימור. שריפה מפסידה את ההימור, גם אם הדילר נשרף אחר כך.</li>
+        <li>אפשר לבקש עוד קלף, לעצור, להכפיל (מכפילים את ההימור ולוקחים קלף אחד) או לפצל זוג מאותה דרגה. פיצול פעם אחת, ולכל יד הימור משלה.</li>
+        <li>אסים מפוצלים מקבלים קלף אחד בלבד. אחרי פיצול של קלפים אחרים אפשר להכפיל. 21 אחרי פיצול משלם 1:1, לא 3:2.</li>
+        <li>אין ביטוח ואין כניעה. עד חמישה שחקנים. הדילר לא משחק יד.</li>
+        <li>הקלף הסגור וסדר הנעל נשארים בשרת. אם מתנתקים באמצע התור, היד נעצרת אחרי כמה שניות ואפשר לחזור מאותו דפדפן.</li>
+      </ul>
+    </form>
+  </dialog>
+  <div id="live" class="sr-only" aria-live="polite"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/client.js"></script>
+</body>
+</html>
