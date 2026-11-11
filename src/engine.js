@@ -7,20 +7,20 @@
  * One split only, same rank (king-king, not king-10). Split aces get one card.
  * Double is allowed on the first action of a two-card hand, including after a split
  * (not on split aces). No insurance, no surrender.
- * The shoe is 3 decks with a red cut card inserted at 60–75% of the way through.
+ * The shoe is 6 decks with a red cut card inserted at 60–75% of the way through.
  * Reaching the cut card finishes the current round, then the full shoe is rebuilt.
  */
 
 export const DEALER_HITS_SOFT_17 = false;
 
 export const RULES = Object.freeze({
-  decks: 3,
+  decks: 6,
   cutCardMin: 0.6,
   cutCardMax: 0.75,
   dealerHitsSoft17: DEALER_HITS_SOFT_17,
   blackjackPays: 1.5,
   minBet: 10,
-  maxPlayers: 5,
+  maxPlayers: 7,
   minBankroll: 100,
   maxBankroll: 100000,
   maxSplits: 1,
@@ -231,7 +231,7 @@ function makeHand(bet, extra = {}) {
 export function addPlayer(table, { id, nickname, bankroll }) {
   if (!id) return fail("שחקן לא תקין");
   if (table.players.some((player) => player.id === id)) return fail("כבר בשולחן");
-  if (table.players.length >= RULES.maxPlayers) return fail("השולחן מלא (עד 5 שחקנים)");
+  if (table.players.length >= RULES.maxPlayers) return fail(`השולחן מלא (עד ${RULES.maxPlayers} שחקנים)`);
   const name = cleanName(nickname);
   if (!name) return fail("צריך כינוי");
   const money = Number(bankroll);
@@ -263,7 +263,7 @@ export function openBetting(table) {
   if (table.shoe.cutReached) {
     table.shoe = createShoe({ rng: table.rng });
     table.reshuffled = true;
-    log(table, "הנעל עורבבה מחדש — 3 חפיסות וקלף חיתוך אדום");
+    log(table, `הנעל עורבבה מחדש — ${RULES.decks} חפיסות וקלף חיתוך אדום`);
   } else {
     table.reshuffled = false;
   }

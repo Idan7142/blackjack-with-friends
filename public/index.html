@@ -78,23 +78,25 @@
         <b id="room-code" dir="ltr">-----</b>
         <button type="button" data-act="copy">העתקת קישור</button>
       </div>
-      <div id="shoe-readout" class="shoe-readout"></div>
       <div class="top-actions">
         <span id="role-pill" class="role-pill"></span>
         <span id="conn-dot" class="conn-dot" title="חיבור"></span>
         <button type="button" class="ghost" data-act="rules">כללים</button>
+        <button type="button" class="ghost" data-act="log" aria-expanded="false" aria-controls="log-panel">מהלך</button>
         <button type="button" class="ghost" data-act="leave">יציאה</button>
       </div>
     </header>
+    <p class="rotate-hint">לנוחות, סובבו לרוחב · המשחק זמין גם ככה</p>
 
     <div class="stage">
-      <div class="table-wrap">
-        <div class="rail">
-          <div id="felt" class="felt"></div>
-        </div>
+      <div id="table-scene" class="table-scene">
+        <div id="felt" class="felt"></div>
       </div>
-      <aside class="log-panel">
-        <h2>מהלך היד</h2>
+      <aside id="log-panel" class="log-panel" hidden>
+        <div class="log-head">
+          <h2>מהלך היד</h2>
+          <button type="button" class="ghost" data-act="log">סגירה</button>
+        </div>
         <ol id="log"></ol>
       </aside>
     </div>
@@ -108,13 +110,13 @@
         <button value="close" class="ghost" aria-label="סגירה">סגירה</button>
       </header>
       <ul>
-        <li>3 חפיסות מעורבבות, עם קלף חיתוך אדום בערך ב־60% עד 75% מהנעל. כשהקלף האדום יוצא מסיימים את הסיבוב, ומערבבים נעל מלאה לפני הסיבוב הבא.</li>
+        <li>6 חפיסות מעורבבות, עם קלף חיתוך אדום בערך ב־60% עד 75% מהנעל. כשהקלף האדום יוצא מסיימים את הסיבוב, ומערבבים נעל מלאה לפני הסיבוב הבא.</li>
         <li>הדילר עומד על כל 17, כולל 17 רך (אס שנשאר 11).</li>
         <li>בלאקג'ק טבעי — אס וקלף 10 בשני הקלפים הראשונים — משלם 3:2.</li>
         <li>תיקו מחזיר את ההימור. שריפה מפסידה את ההימור, גם אם הדילר נשרף אחר כך.</li>
         <li>אפשר לבקש עוד קלף, לעצור, להכפיל (מכפילים את ההימור ולוקחים קלף אחד) או לפצל זוג מאותה דרגה. פיצול פעם אחת, ולכל יד הימור משלה.</li>
         <li>אסים מפוצלים מקבלים קלף אחד בלבד. אחרי פיצול של קלפים אחרים אפשר להכפיל. 21 אחרי פיצול משלם 1:1, לא 3:2.</li>
-        <li>אין ביטוח ואין כניעה. עד חמישה שחקנים. הדילר לא משחק יד.</li>
+        <li>אין ביטוח ואין כניעה. עד שבעה שחקנים. הדילר לא משחק יד.</li>
         <li>הקלף הסגור וסדר הנעל נשארים בשרת. אם מתנתקים באמצע התור, היד נעצרת אחרי כמה שניות ואפשר לחזור מאותו דפדפן.</li>
       </ul>
     </form>
