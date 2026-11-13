@@ -36,7 +36,7 @@ Tables are in memory. A restart, or a free instance spinning down, clears open t
 
 ## כללים שנבחרו · Rule choices
 
-- 6 חפיסות, וקלף חיתוך אדום במיקום אקראי בין 60% ל־75% מהנעל. כשהוא נמשך מסיימים את הסיבוב ומערבבים נעל מלאה לפני הסיבוב הבא.
+- 6 חפיסות, וקלף חיתוך אדום במיקום אקראי בין 60% ל־75% מהנעל. אם הוא יוצא באמצע היד מניחים אותו בצד, מסיימים את הסיבוב, ומערבבים לפני הסיבוב הבא. אם הוא הקלף הבא בדיוק בסיום הסיבוב, מערבבים מיד. הסיבובים ממשיכים אוטומטית; המושבים והיתרות נשארים.
 - הדילר **עומד על 17 רך**. הקבוע `DEALER_HITS_SOFT_17` ב-`src/engine.js` הוא `false`.
 - בלאקג'ק טבעי משלם 3:2. 21 אחרי פיצול משלם 1:1.
 - תיקו מחזיר את ההימור. שחקן שנשרף מפסיד גם אם הדילר היה נשרף.
@@ -45,4 +45,4 @@ Tables are in memory. A restart, or a free instance spinning down, clears open t
 - אין ביטוח ואין כניעה. עד 7 שחקנים. הדילר לא משחק יד.
 - הקלף הסגור וסדר הנעל לא נשלחים ללקוח. ניתוק באמצע התור עוצר את היד אחרי 20 שניות; רענון אותה לשונית מחזיר את המושב.
 
-Six decks, red cut card at a random 60–75% depth. Dealer stands on soft 17. Naturals pay 3:2. One same-rank split; split aces take one card. Double is one extra card for twice the bet. No insurance or surrender. Up to 7 players. The hole card and shoe order stay on the server.
+Six decks, red cut card at a random 60–75% depth. A cut card mid-round is set aside and the round finishes; the shoe is rebuilt before the next round. If the next card at the end of a round is the cut card, the shoe is rebuilt immediately. Rounds continue automatically and seats and balances stay. Dealer stands on soft 17. Naturals pay 3:2. One same-rank split; split aces take one card. Double is one extra card for twice the bet. No insurance or surrender. Up to 7 players. The hole card and shoe order stay on the server.

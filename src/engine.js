@@ -8,7 +8,9 @@
  * Double is allowed on the first action of a two-card hand, including after a split
  * (not on split aces). No insurance, no surrender.
  * The shoe is 6 decks with a red cut card inserted at 60–75% of the way through.
- * Reaching the cut card finishes the current round, then the full shoe is rebuilt.
+ * A cut card that appears mid-round is set aside; the round finishes from the cards
+ * still behind it, and the full shoe is rebuilt before the next round. If the next
+ * card at the end of a round is the cut card, the shoe is rebuilt immediately.
  */
 
 export const DEALER_HITS_SOFT_17 = false;
@@ -167,7 +169,7 @@ function refillDiscards(table) {
   log(table, "הנעל נגמרה באמצע הסיבוב — הקלפים שכבר ירדו עורבבו");
 }
 
-/** Draw the next real card. A cut card is consumed, never dealt, and marks a reshuffle. */
+/** Draw the next real card. A cut card is set aside, never dealt, and marks a later reshuffle. */
 export function drawCard(table) {
   const pull = () => {
     while (table.shoe.cards[0]?.cut) {
@@ -254,17 +256,25 @@ export function addPlayer(table, { id, nickname, bankroll }) {
   return ok();
 }
 
+function shoeNeedsRebuild(table) {
+  return table.shoe.cutReached || Boolean(table.shoe.cards[0]?.cut);
+}
+
+function rebuildShoe(table) {
+  table.shoe = createShoe({ rng: table.rng });
+  table.reshuffled = true;
+  log(table, "ערבוב מחדש");
+}
+
 export function openBetting(table) {
   if (table.resolving) return fail("הסיבוב הקודם עוד נסגר");
   if (table.phase !== "lobby" && table.phase !== "results") return fail("אי אפשר לפתוח סיבוב עכשיו");
   table.players = table.players.filter((player) => !player.leaving);
   const eligible = table.players.filter((player) => player.connected && player.bankroll >= RULES.minBet);
   if (eligible.length === 0) return fail("אין שחקן מחובר עם יתרה להימור");
-  if (table.shoe.cutReached) {
-    table.shoe = createShoe({ rng: table.rng });
-    table.reshuffled = true;
-    log(table, `הנעל עורבבה מחדש — ${RULES.decks} חפיסות וקלף חיתוך אדום`);
-  } else {
+  if (shoeNeedsRebuild(table)) {
+    rebuildShoe(table);
+  } else if (!table.reshuffled) {
     table.reshuffled = false;
   }
   table.round += 1;
@@ -561,6 +571,7 @@ export function settle(table) {
   table.turn = null;
   table.autoStandAt = null;
   table.settledRound = table.round;
+  if (table.shoe.cards[0]?.cut) rebuildShoe(table);
   return ok();
 }
 
@@ -620,6 +631,19 @@ function dealerViewTotal(table) {
   return handValue(cards);
 }
 
+function shoePublic(table) {
+  const cards = table.shoe.cards;
+  const cutAt = cards.findIndex((card) => card.cut);
+  return {
+    remaining: cards.filter((card) => !card.cut).length,
+    total: RULES.decks * 52,
+    decks: RULES.decks,
+    cutReached: table.shoe.cutReached,
+    cutInShoe: cutAt >= 0,
+    cutFromFront: cutAt >= 0 ? cutAt : null,
+  };
+}
+
 export function publicView(table, viewer = null) {
   const youId = viewer?.role === "player" ? viewer.id : null;
   let you;
@@ -658,7 +682,7 @@ export function publicView(table, viewer = null) {
     code: table.code,
     phase: table.phase,
     round: table.round,
-    reshuffled: table.reshuffled && table.phase === "betting",
+    reshuffled: Boolean(table.reshuffled),
     you,
     dealer: {
       name: table.dealerName,
@@ -699,12 +723,7 @@ export function publicView(table, viewer = null) {
         };
       }),
     })),
-    shoe: {
-      remaining: table.shoe.cards.filter((card) => !card.cut).length,
-      decks: RULES.decks,
-      cutReached: table.shoe.cutReached,
-      cutInShoe: table.shoe.cards.some((card) => card.cut),
-    },
+    shoe: shoePublic(table),
     turn: table.turn
       ? { playerId: table.turn.playerId, handIndex: table.turn.handIndex, autoStandAt: table.autoStandAt }
       : null,
