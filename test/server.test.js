@@ -6,6 +6,7 @@ import { startServer, testGetTable, testSetShoe } from "../src/server.js";
 
 process.env.DEALER_DELAY_MS = "0";
 process.env.AUTOSTAND_MS = "400";
+process.env.RESULT_PAUSE_MS = "30000";
 
 let server;
 let url;
@@ -133,5 +134,50 @@ describe("socket table", () => {
     noa.disconnect();
     yossi.disconnect();
     again.disconnect();
+  });
+
+  it("opens the next round on its own and keeps the seat and balance", async () => {
+    process.env.RESULT_PAUSE_MS = "0";
+    const dealer = connect();
+    const noa = connect();
+    try {
+      await Promise.all([
+        waitFor(() => dealer.connected, Boolean),
+        waitFor(() => noa.connected, Boolean),
+      ]);
+      const created = await emit(dealer, "create-table", { dealerName: "רוני" });
+      assert.equal(created.ok, true);
+      const join = await emit(noa, "join-table", { code: created.code, nickname: "נועה", bankroll: 1000 });
+      assert.equal(join.ok, true);
+      assert.equal((await emit(dealer, "open-round", {})).ok, true);
+      testSetShoe(created.code, createShoe({
+        cards: [
+          { rank: "10", suit: "H", id: "a" },
+          { rank: "10", suit: "D", id: "b" },
+          { rank: "9", suit: "C", id: "c" },
+          { rank: "9", suit: "S", id: "d" },
+          { rank: "2", suit: "H", id: "e" },
+        ],
+        cutIndex: 4,
+      }));
+      assert.equal((await emit(noa, "place-bet", { amount: 100 })).ok, true);
+      const acting = await waitFor(() => noa._state, (state) => state.phase === "acting");
+      assert.equal((await emit(noa, "action", { type: "stand" })).ok, true);
+      const next = await waitFor(
+        () => dealer._state,
+        (state) => state.phase === "betting" && state.round === 2,
+      );
+      assert.equal(next.players.length, 1);
+      assert.equal(next.players[0].nickname, "נועה");
+      assert.equal(next.players[0].id, acting.players[0].id);
+      assert.equal(next.players[0].bankroll, 1000);
+      assert.equal(next.players[0].hands.length, 0);
+      assert.equal(testGetTable(created.code).players[0].bankroll, 1000);
+      assert.equal(next.reshuffled, true);
+    } finally {
+      process.env.RESULT_PAUSE_MS = "30000";
+      dealer.disconnect();
+      noa.disconnect();
+    }
   });
 });

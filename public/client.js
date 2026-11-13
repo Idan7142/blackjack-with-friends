@@ -225,7 +225,7 @@ function feltSignature(state) {
     turn: state.turn,
     reshuffled: state.reshuffled,
     waitingFor: state.waitingFor,
-    shoe: [state.shoe.remaining, state.shoe.cutReached],
+    shoe: [state.shoe.remaining, state.shoe.cutReached, state.shoe.cutFromFront, state.shoe.cutInShoe],
     you: state.you.role === "player" ? state.you.id : state.you.role,
   });
 }
@@ -246,6 +246,7 @@ function renderFelt(state) {
       ${offline}
       ${deadline}
     </div>
+    ${shoeStackHtml(state)}
     ${dealerHtml(state)}
     ${state.players.map((player) => seatHtml(state, player)).join("")}`;
 }
@@ -262,16 +263,24 @@ function tablePot(state) {
   return total;
 }
 
-function shoeHtml(state) {
-  const hot = state.shoe.cutReached;
-  const status = hot ? "חיתוך יצא" : "חיתוך בנעל";
-  const title = hot ? "קלף אדום נמשך · ערבוב אחרי הסיבוב" : "קלף אדום בנעל";
-  const total = Number(state.shoe.decks) * 52;
+function shoeStackHtml(state) {
+  const shoe = state.shoe;
+  const total = Number(shoe.total || shoe.decks * 52) || 312;
+  const remaining = Number(shoe.remaining) || 0;
+  const depth = Math.max(0.06, Math.min(1, remaining / total));
+  const hasCut = Boolean(shoe.cutInShoe) && shoe.cutFromFront != null;
+  const thickness = remaining + (hasCut ? 1 : 0);
+  const cutTop = hasCut && thickness > 0 ? (Number(shoe.cutFromFront) / thickness) * 100 : null;
+  const aside = shoe.cutReached && !shoe.cutInShoe ? `<div class="cut-aside" title="קלף החיתוך בצד"></div>` : "";
+  const slice = cutTop == null ? "" : `<div class="cut-slice" style="top:${cutTop.toFixed(2)}%"></div>`;
+  const reshuffle = state.reshuffled ? `<div class="reshuffle-flag">ערבוב מחדש</div>` : "";
+  const label = hasCut ? "נעל עם קלף חיתוך אדום" : shoe.cutReached ? "קלף החיתוך בצד" : "נעל";
   return `
-    <div class="shoe-inline" title="${esc(title)}">
-      <span class="shoe-count"><b class="num">${fmt(state.shoe.remaining)}</b><span>מתוך <span class="num">${fmt(total)}</span></span></span>
-      <span class="cut-pill ${hot ? "hot" : ""}">${status}</span>
-      <span class="sr-only">${esc(title)}</span>
+    <div class="shoe-stack" id="shoe-stack" role="img" aria-label="${esc(label)}">
+      <div class="shoe-pack" style="--pack:${depth.toFixed(3)}">${slice}</div>
+      ${aside}
+      ${reshuffle}
+      <div class="shoe-count"><b class="num">${fmt(remaining)}</b></div>
     </div>`;
 }
 
@@ -283,7 +292,6 @@ function dealerHtml(state) {
     <div class="dealer-plate" id="dealer-plate">
       <div class="who"><strong>דילר · ${esc(dealer.name)}</strong>${total ? `<span class="total-badge">${total}</span>` : ""}</div>
       <div class="hand-cards">${dealer.cards.map((card, index) => cardHtml(state, "dealer", index, card)).join("") || `<span class="wait-line">מחכה לחלוקה</span>`}</div>
-      ${shoeHtml(state)}
     </div>`;
 }
 
@@ -411,8 +419,8 @@ function dealerDock(state) {
     const disabled = state.you.canOpen ? "" : "disabled";
     return dockWrap(
       state.phase === "results" ? "הסיבוב נגמר" : "מחכים לשחקנים",
-      "רק אתם פותחים סיבוב חדש.",
-      `<button type="button" class="primary" data-act="open" ${disabled}>פתיחת סיבוב</button>`,
+      state.phase === "results" ? "המושבים נשארים. הימורים לסיבוב הבא נפתחים אוטומטית." : "רק אתם פותחים סיבוב חדש.",
+      `<button type="button" class="primary" data-act="open" ${disabled}>${state.phase === "results" ? "סיבוב הבא" : "פתיחת סיבוב"}</button>`,
     );
   }
   if (state.phase === "betting") {
@@ -459,7 +467,7 @@ function playerDock(state) {
       </div>`;
   }
   if (state.phase === "lobby") return dockWrap("ממתינים לדילר", "הסיבוב ייפתח כשהדילר ילחץ על פתיחת סיבוב.", "");
-  if (state.phase === "results") return dockWrap("הסיבוב נגמר", "היתרה עודכנה. מחכים לסיבוב הבא.", "");
+  if (state.phase === "results") return dockWrap("הסיבוב נגמר", "היתרה נשמרת. הימורים לסיבוב הבא נפתחים אוטומטית.", "");
   if (state.phase === "dealer") return dockWrap("הדילר משחק", "עוד רגע יופיעו התוצאות.", "");
   const name = playerName(state, state.turn?.playerId);
   return dockWrap("ממתינים", name ? `תור של ${name}` : "עוד לא התור שלכם", "");
@@ -486,8 +494,8 @@ function centerCopy(state) {
     return { title: "השולחן מחכה לחברים", body: "שתפו את הקישור. כל מי שנכנס בוחר כינוי וקופת משחק." };
   }
   if (state.phase === "lobby") return { title: "מוכנים לסיבוב?", body: "כשכולם בפנים, פתחו הימורים." };
-  if (state.phase === "betting" && state.reshuffled) {
-    return { title: "הנעל עורבבה מחדש", body: "קלף החיתוך האדום יצא. שש חפיסות חדשות על השולחן." };
+  if (state.reshuffled) {
+    return { title: "ערבוב מחדש", body: `סיבוב ${state.round}. שש חפיסות חדשות וקלף חיתוך אדום.` };
   }
   if (state.phase === "betting") return { title: `סיבוב ${state.round}`, body: "כל שחקן מניח הימור מתוך הקופה." };
   if (state.phase === "acting") {
@@ -495,7 +503,7 @@ function centerCopy(state) {
     return { title: name ? `תור של ${name}` : "תור השחקנים", body: "עוד קלף, עצירה, הכפלה או פיצול." };
   }
   if (state.phase === "dealer") return { title: "הדילר פותח", body: "מושכים עד 16, ועומדים על כל 17." };
-  return { title: "תוצאות הסיבוב", body: "בלאקג'ק משלם 3:2. תיקו מחזיר את ההימור." };
+  return { title: "תוצאות הסיבוב", body: "המושבים נשארים. הימורים לסיבוב הבא נפתחים אוטומטית." };
 }
 
 function withLtrNumbers(raw) {
@@ -702,6 +710,13 @@ function applyPlan(scene, seatNodes, dealerNode, rail, center, plan) {
   seatNodes.forEach((node, index) => {
     if (plan.seats[index]) placePlate(node, plan.seats[index]);
   });
+  const shoe = document.getElementById("shoe-stack");
+  if (shoe) {
+    const maxH = Math.max(52, Math.min(128, plan.ry * 0.7));
+    shoe.style.setProperty("--shoe-max", `${maxH}px`);
+    shoe.style.left = `${plan.cx - plan.rx * 0.58}px`;
+    shoe.style.top = `${plan.cy - plan.ry * 0.46}px`;
+  }
 }
 
 function placePlate(node, box) {
@@ -733,7 +748,7 @@ function estimateSeatHeight(card, info, compact) {
 }
 
 function estimateDealerHeight(card, hasCards) {
-  return 18 + (hasCards ? card * 1.42 : 18) + 20 + 10;
+  return 16 + (hasCards ? card * 1.42 : 16) + 12;
 }
 
 function boxesCollide(rects, width, height, pad = 2) {

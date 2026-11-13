@@ -195,8 +195,8 @@ describe("dealing, payouts, doubles, and splits", () => {
 
   it("lets a busted player lose even when the dealer would have busted", () => {
     const sentinel = { rank: "K", suit: "S", id: "SENTINEL" };
-    const cards = [C("10", "H"), C("10", "D"), C("6", "C"), C("6", "S"), C("K", "H"), sentinel];
-    const table = freshTable(cards, [{ id: "p1", nickname: "נועה" }], { cutIndex: 6 });
+    const cards = [C("10", "H"), C("10", "D"), C("6", "C"), C("6", "S"), C("K", "H"), sentinel, C("2", "H")];
+    const table = freshTable(cards, [{ id: "p1", nickname: "נועה" }], { cutIndex: 7 });
     bet(table, "p1", 50);
     deal(table);
     act(table, "p1", "hit");
@@ -455,6 +455,106 @@ describe("cut card and shoe", () => {
     assert.equal(view.shoe.decks, 6);
     assert.equal(view.shoe.remaining, 312);
     assert.equal(view.players.length, 7);
+  });
+
+  it("sets a mid-round cut card aside, finishes the hand, then rebuilds before the next round", () => {
+    const hit = C("5", "H");
+    const cards = [
+      C("10", "H"), C("10", "D"), C("6", "C"), C("7", "S"),
+      hit, C("2", "C"), C("3", "D"), C("4", "H"),
+    ];
+    const table = freshTable(cards, [{ id: "p1", nickname: "נועה" }], { cutIndex: 4 });
+    bet(table, "p1", 10);
+    deal(table);
+    assert.equal(table.shoe.cards[0].cut, true);
+    assert.equal(table.shoe.cutReached, false);
+    act(table, "p1", "hit");
+    assert.equal(table.players[0].hands[0].cards.at(-1).id, hit.id);
+    assert.equal(table.shoe.cutReached, true);
+    assert.equal(table.shoe.cards.some((card) => card.cut), false);
+    completeDealer(table);
+    assert.equal(table.phase, "results");
+    assert.equal(table.shoe.realCount, cards.length);
+    assert.equal(table.players[0].hands[0].result, "win");
+    assert.equal(table.players[0].bankroll, 1010);
+    const shoeBefore = table.shoe;
+    assert.equal(openBetting(table).ok, true);
+    assert.notEqual(table.shoe, shoeBefore);
+    assert.equal(table.shoe.realCount, 312);
+    assert.equal(table.shoe.cutReached, false);
+    assert.equal(table.reshuffled, true);
+    assert.equal(table.players[0].id, "p1");
+    assert.equal(table.players[0].bankroll, 1010);
+    assert.equal(table.players[0].hands.length, 0);
+    const ratio = table.shoe.cutIndex / table.shoe.realCount;
+    assert.ok(ratio >= 0.6 - 1e-9 && ratio <= 0.75 + 1e-9);
+  });
+
+  it("reshuffles immediately when the next card at the end of a round is the cut card", () => {
+    const cards = [
+      C("10", "H"), C("10", "D"), C("7", "C"), C("9", "S"),
+      C("2", "H"), C("3", "D"), C("4", "C"), C("5", "S"),
+    ];
+    const table = freshTable(cards, [{ id: "p1", nickname: "נועה" }], { cutIndex: 4 });
+    bet(table, "p1", 10);
+    deal(table);
+    act(table, "p1", "stand");
+    assert.equal(table.shoe.cards[0].cut, true);
+    assert.equal(table.shoe.cutReached, false);
+    completeDealer(table);
+    assert.equal(table.phase, "results");
+    assert.equal(table.dealerCards.length, 2);
+    assert.equal(table.shoe.realCount, 312);
+    assert.equal(table.shoe.cutReached, false);
+    assert.equal(Boolean(table.shoe.cards[0]?.cut), false);
+    assert.equal(table.reshuffled, true);
+    assert.equal(table.players[0].bankroll, 990);
+    assert.equal(table.log.some((entry) => entry.text === "ערבוב מחדש"), true);
+    const rebuilt = table.shoe;
+    assert.equal(openBetting(table).ok, true);
+    assert.equal(table.shoe, rebuilt);
+    assert.equal(table.round, 2);
+    assert.equal(table.phase, "betting");
+    assert.equal(table.reshuffled, true);
+  });
+});
+
+describe("session continuity", () => {
+  it("keeps seats and balances and can play another round", () => {
+    const cards = [
+      C("10", "H"), C("10", "D"), C("10", "C"),
+      C("9", "S"), C("9", "H"), C("9", "D"),
+      C("8", "H"), C("8", "D"), C("8", "C"), C("7", "S"), C("6", "H"), C("5", "D"),
+    ];
+    const table = freshTable(cards, [
+      { id: "p1", nickname: "נועה" },
+      { id: "p2", nickname: "יוסי" },
+    ], { cutIndex: 11 });
+    bet(table, "p1", 100);
+    bet(table, "p2", 40);
+    deal(table);
+    act(table, "p1", "stand");
+    act(table, "p2", "stand");
+    completeDealer(table);
+    assert.equal(table.phase, "results");
+    assert.equal(table.players[0].hands[0].result, "push");
+    assert.equal(table.players[1].hands[0].result, "push");
+    assert.equal(table.players[0].bankroll, 1000);
+    assert.equal(table.players[1].bankroll, 1000);
+    assert.equal(openBetting(table).ok, true);
+    assert.equal(table.round, 2);
+    assert.equal(table.phase, "betting");
+    assert.deepEqual(table.players.map((player) => player.id), ["p1", "p2"]);
+    assert.equal(table.players[0].hands.length, 0);
+    assert.equal(table.dealerCards.length, 0);
+    assert.equal(table.players[0].bankroll, 1000);
+    bet(table, "p1", 20);
+    bet(table, "p2", 20);
+    const second = deal(table);
+    assert.equal(second.ok, true);
+    assert.equal(table.players[0].inRound, true);
+    assert.equal(table.players[1].inRound, true);
+    assert.equal(table.players[0].bankroll, 980);
   });
 });
 

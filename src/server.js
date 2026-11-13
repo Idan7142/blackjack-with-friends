@@ -28,6 +28,7 @@ const tables = new Map();
 const sessions = new Map();
 const standTimers = new Map();
 const sweepTimers = new Map();
+const nextRoundTimers = new Map();
 
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -41,6 +42,10 @@ function dealerDelay() {
 
 function autoStandMs() {
   return Number(process.env.AUTOSTAND_MS ?? 20000);
+}
+
+function resultPauseMs() {
+  return Number(process.env.RESULT_PAUSE_MS ?? 4000);
 }
 
 function sleep(ms) {
@@ -129,7 +134,23 @@ export function createGameServer() {
       clearTimer(sweepTimers, player.id);
     }
     clearTimer(sweepTimers, `dealer:${code}`);
+    clearTimer(nextRoundTimers, code);
     tables.delete(code);
+  }
+
+  function scheduleNextRound(table) {
+    clearTimer(nextRoundTimers, table.code);
+    const code = table.code;
+    const round = table.round;
+    const timer = setTimeout(() => {
+      nextRoundTimers.delete(code);
+      const current = tables.get(code);
+      if (!current || current.resolving || current.phase !== "results" || current.round !== round) return;
+      const opened = openBetting(current);
+      if (opened.ok) broadcast(current);
+    }, resultPauseMs());
+    timer.unref();
+    nextRoundTimers.set(code, timer);
   }
 
   async function animateDealer(table) {
@@ -166,12 +187,14 @@ export function createGameServer() {
       if (table._stamp !== stamp || !tables.has(table.code)) return;
       settle(table);
       broadcast(table);
+      scheduleNextRound(table);
     } catch (error) {
       console.error("dealer play failed", error);
       if (tables.has(table.code) && table.phase !== "results") {
         try {
           settle(table);
           broadcast(table);
+          scheduleNextRound(table);
         } catch (settleError) {
           console.error(settleError);
         }
@@ -326,6 +349,7 @@ export function createGameServer() {
         reply(callback, { ok: false, error: "רק הדילר פותח סיבוב" });
         return;
       }
+      clearTimer(nextRoundTimers, table.code);
       const result = openBetting(table);
       reply(callback, result);
       if (result.ok) broadcast(table);
